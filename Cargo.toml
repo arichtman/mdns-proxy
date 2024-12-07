@@ -1,0 +1,10 @@
+[package]
+name = "mdns-proxy"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+hickory-proto = "0.24.1"
+hickory-server = "0.24.1"
+mdns = "3.0.0"
+tokio = "1.42.0"
