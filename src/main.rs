@@ -1,12 +1,19 @@
 // #![allow(unused_imports, unused_variables)]
-#![cfg_attr(debug_assertions, allow(unused_imports, unused_variables))]
+#![cfg_attr(
+    debug_assertions,
+    allow(unused_imports, unused_variables, dead_code, unused_mut)
+)]
+use async_trait::async_trait;
+use hickory_server::authority::{MessageRequest, MessageResponseBuilder};
+use mdns::Response;
 use std::pin::Pin;
 use std::str::FromStr;
 use std::time::Duration;
 
+use hickory_proto::op::Header;
 use hickory_server::proto::rr::{IntoName, LowerName, Name};
-use hickory_server::server::RequestHandler;
 use hickory_server::server::{Request, ResponseInfo};
+use hickory_server::server::{RequestHandler, ResponseHandler};
 
 use tokio::net::TcpListener;
 use tokio::net::UdpSocket;
@@ -18,34 +25,26 @@ struct MyResponseHandler {}
 // const MDNS: Name = Name::from_labels(vec!["local"]).unwrap();
 // const MDNS_TLD: Name = Name::from(LowerName::from_str("local").unwrap());
 
+#[async_trait]
 impl RequestHandler for MyResponseHandler {
-    async fn handle_request<'life0, 'life1, 'async_trait, R>(
-        &'life0 self,
-        request: &'life1 Request,
-        response_handle: R,
-    ) -> ::core::pin::Pin<
-        Box<
-            dyn ::core::future::Future<Output = hickory_server::server::ResponseInfo>
-                + ::core::marker::Send
-                + 'async_trait,
-        >,
-    >
-    where
-        R: 'async_trait + hickory_server::server::ResponseHandler,
-        'life0: 'async_trait,
-        'life1: 'async_trait,
-        Self: 'async_trait,
-    {
+    async fn handle_request<R: ResponseHandler>(
+        &self,
+        request: &Request,
+        mut response_handle: R,
+    ) -> ResponseInfo {
         let question = request.request_info().query.name();
         if !question.zone_of(&LowerName::from_str("local").unwrap()) {
             panic!()
         }
         let hostname = question.into_name().unwrap().to_lowercase().to_string();
-        let response = mdns::resolve::one(hostname.as_str(), &hostname, Duration::from_secs(5));
-        // Pin::new(Box::new(response))
-        Box::pin(response)
+        let response = mdns::resolve::one(hostname.as_str(), &hostname, Duration::from_secs(5))
+            .await
+            .unwrap();
+        dbg!(response);
+        ResponseInfo::from(Header::default())
     }
 }
+
 #[tokio::main]
 async fn main() {
     let handler = hickory_server::authority::Catalog::default();

@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+async-trait = "0.1.83"
 hickory-proto = "0.24.1"
 hickory-server = "0.24.1"
 mdns = "3.0.0"
